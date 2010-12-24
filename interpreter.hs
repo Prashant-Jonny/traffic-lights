@@ -46,9 +46,9 @@ halt :: WmState -> Bool
 halt (registers, _) = getReg registers R0 == 100
 
 runCommand :: Command -> WmState -> IO WmState
-runCommand (Out reg) (state, cnt) = (putStrLn $ show (getReg state reg)) >> return (update (Out reg) (state, cnt))
+runCommand (Out reg) (state, cnt)   = (putStrLn $ show (getReg state reg)) >> return (update (Out reg) (state, cnt))
 runCommand (Sleep reg) (state, cnt) = usleep ((getReg state reg) * 1000) >> return (update (Sleep reg) (state, cnt))
-runCommand command (state, cnt) = return (update command (state, cnt))
+runCommand command (state, cnt)     = return (update command (state, cnt))
 
 update :: Command -> WmState -> WmState
 update command (state, cnt) = (updateRegisters command state, updateCounter command (state, cnt))
@@ -104,7 +104,7 @@ compileCommand (Shl shift) = 11 .|. shift
 compileCommand (Jmp reg)   = 12 .|. fromEnum(reg) 
 compileCommand (Out reg)   = 13 .|. fromEnum(reg) 
 compileCommand (Sleep reg) = 14 .|. fromEnum(reg) 
-compileCommand Nop = 15
+compileCommand Nop         = 256
 
 add :: Int -> Int -> Program
 add a b = [Store 200,
