@@ -1,6 +1,6 @@
+import System.IO
 import System.Posix.Unistd
 import Data.Bits
-import Text.ParserCombinators.Parsec
 
 data Command = Store Int 
              | Inc   Reg
@@ -18,6 +18,7 @@ data Command = Store Int
              | Out   Reg
              | Sleep Reg
              | Nop 
+               deriving (Show)
 
 data Reg = R0  | R1  | R2  | R3 
          | R4  | R5  | R6  | R7 
@@ -118,3 +119,14 @@ add a b = [Store 200,
            Jnz   (11),
            Out   R1,
            Store 100]
+
+main = do lines <- readProgram
+          return (show (parse lines))
+                 
+readProgram :: IO [String]
+readProgram = do line <- hGetLine stdin
+                 lines <- readProgram
+                 return (line:lines)
+
+parse :: [String] -> [Command]
+parse lines = add 1 2
