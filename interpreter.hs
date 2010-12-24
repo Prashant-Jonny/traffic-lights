@@ -66,10 +66,10 @@ updateRegisters (Xch reg) state = if reg == R0 then state else setReg (setReg st
 updateRegisters command state   = state
 
 updateCounter :: Command -> WmState -> CommandCnt
-updateCounter (Jz  shift) (state, cnt) = if (getReg state R0) == 0 then cnt+shift else cnt+1
-updateCounter (Jnz shift) (state, cnt) = if not $ (getReg state R0) == 0 then cnt+shift else cnt+1
-updateCounter (Shr shift) (state, cnt) = cnt+shift
-updateCounter (Shl shift) (state, cnt) = cnt-shift
+updateCounter (Jz  shift) (state, cnt) = if (getReg state R0) == 0 then cnt+decode(shift) else cnt+1
+updateCounter (Jnz shift) (state, cnt) = if not $ (getReg state R0) == 0 then cnt+decode(shift) else cnt+1
+updateCounter (Shr shift) (state, cnt) = cnt+decode(shift)
+updateCounter (Shl shift) (state, cnt) = cnt+decode(shift)
 updateCounter (Jmp reg)   (state, cnt) = getReg state reg
 updateCounter command     (_, cnt)     = cnt+1
 
@@ -82,6 +82,10 @@ setReg registers reg val = take r registers ++ [val] ++ drop (r+1) registers
 
 compile :: Program -> [Int]
 compile = map compileCommand
+
+decode :: Int -> Int
+decode x = if (x >= 0 && x < 8) then x
+           else -(x `mod` 8 + 1)
 
 compileCommand :: Command -> Int
 compileCommand (Store x)   =  0 .|. x
@@ -111,6 +115,6 @@ add a b = [Store 200,
            Dec   R0,
            Out   R1,
            Sleep R3,
-           Jnz   (-4),
+           Jnz   (11),
            Out   R1,
            Store 100]
