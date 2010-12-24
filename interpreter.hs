@@ -19,8 +19,7 @@ data Command = Store Int
              | Nop 
 
 data Reg = R0 | R1 | R2 | R3 |  R4 |  R5 |  R6 |  R7 |  R8 |  R9 |  R10 |  R11 |  R12 |  R13 |  R14 |  R15 
-           deriving (Eq, Ord, Enum, Show)
-
+           deriving (Eq, Enum, Show)
 type Program    = [Command]
 type Registers  = [Int]
 type CommandCnt = Int
@@ -33,16 +32,18 @@ run :: Program -> IO WmState
 run p = run' p initialState
 
 run' :: Program -> WmState -> IO WmState
-run' p (registers, counter) = runCommand' command (registers, counter) >>= h
-    where command = p !! counter
-          h newState = if (halt newState) then return newState else run' p newState
+run' program (registers, counter) = runCommand' command (registers, counter) >>= h
+    where command = program !! counter
+          h newState = if (halt newState) then return newState else run' program newState
 
 halt :: WmState -> Bool
-halt (registers, _) = registers !! 0 == 100
+halt (registers, _) = getReg registers R0 == 100
 
 runCommand' :: Command -> WmState -> IO WmState
-runCommand' (Out reg) (state, cnt)   = (putStrLn $ show (getReg state reg)) >> return (runCommand (Out reg) state, count (Out reg) (state, cnt))
-runCommand' (Sleep reg) (state, cnt) = usleep ((getReg state reg) * 1000) >> return (runCommand (Sleep reg) state, count (Sleep reg) (state, cnt))
+runCommand' (Out reg) (state, cnt)   = (putStrLn $ show (getReg state reg)) >> 
+                                       return (runCommand (Out reg) state, count (Out reg) (state, cnt))
+runCommand' (Sleep reg) (state, cnt) = usleep ((getReg state reg) * 1000) >> 
+                                       return (runCommand (Sleep reg) state, count (Sleep reg) (state, cnt))
 runCommand' command (state, cnt)     = return (runCommand command state, count command (state, cnt))
 
 runCommand :: Command -> Registers -> Registers
@@ -58,6 +59,14 @@ runCommand (Xch reg) state = if reg == R0 then state else setReg (setReg state R
           regval = getReg state reg
 runCommand command state   = state
 
+count :: Command -> WmState -> CommandCnt
+count (Jz  shift) (state, cnt) = if (getReg state R0) == 0 then cnt+shift else cnt+1
+count (Jnz shift) (state, cnt) = if not $ (getReg state R0) == 0 then cnt+shift else cnt+1
+count (Shr shift) (state, cnt) = cnt+shift
+count (Shl shift) (state, cnt) = cnt-shift
+count (Jmp reg)   (state, cnt) = getReg state reg
+count command     (_, cnt)     = cnt+1
+
 getReg :: Registers -> Reg -> Int
 getReg registers reg = registers !! fromEnum(reg)
 
@@ -65,22 +74,37 @@ setReg :: Registers -> Reg -> Int -> Registers
 setReg registers reg val = take r registers ++ [val] ++ drop (r+1) registers
                            where r = fromEnum reg
 
-count :: Command -> WmState -> CommandCnt
-count (Jz  shift) (state, cnt) = if (state !! 0) == 0 then cnt+shift else cnt+1
-count (Jnz shift) (state, cnt) = if not $ (state !! 0) == 0 then cnt+shift else cnt+1
-count (Shr shift) (state, cnt) = cnt+shift
-count (Shl shift) (state, cnt) = cnt-shift
-count (Jmp reg)   (state, cnt) = getReg state reg
-count command     (_, cnt)     = cnt+1
+compile :: Program -> [Int]
+compile = map compileCommand
 
+compileCommand :: Command -> Int
+compileCommand (Store x)   =  0 .|. x
+compileCommand (Inc reg)   =  1 .|. fromEnum(reg)
+compileCommand (Dec reg)   =  2 .|. fromEnum(reg)
+compileCommand (Not reg)   =  3 .|. fromEnum(reg) 
+compileCommand (And reg)   =  4 .|. fromEnum(reg) 
+compileCommand (Or  reg)   =  5 .|. fromEnum(reg) 
+compileCommand (Xor reg)   =  6 .|. fromEnum(reg) 
+compileCommand (Xch reg)   =  7 .|. fromEnum(reg) 
+compileCommand (Jz  shift) =  8 .|. shift
+compileCommand (Jnz shift) =  9 .|. shift
+compileCommand (Shr shift) = 10 .|. shift
+compileCommand (Shl shift) = 11 .|. shift
+compileCommand (Jmp reg)   = 12 .|. fromEnum(reg) 
+compileCommand (Out reg)   = 13 .|. fromEnum(reg) 
+compileCommand (Sleep reg) = 14 .|. fromEnum(reg) 
+compileCommand Nop = 15
 
 add :: Int -> Int -> Program
-add a b = [Store a, 
-           Xch R1, 
+add a b = [Store 200,
+           Xch   R3,
+           Store a, 
+           Xch   R1, 
            Store b, 
-           Inc R1,
-           Dec R0,
-           Out R1,
-           Jnz (-3),
-           Out R1,
+           Inc   R1,
+           Dec   R0,
+           Out   R1,
+           Sleep R3,
+           Jnz   (-4),
+           Out   R1,
            Store 100]
