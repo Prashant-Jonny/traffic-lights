@@ -121,12 +121,17 @@ add a b = [Store 200,
            Store 100]
 
 main = do lines <- readProgram
+          hPutStrLn stdout (show lines)
           return (show (parse lines))
                  
 readProgram :: IO [String]
-readProgram = do line <- hGetLine stdin
-                 lines <- readProgram
-                 return (line:lines)
+readProgram = do eof <- isEOF 
+                 if eof
+                    then do hPutStrLn stdout "eof"
+                            return [] 
+                    else do line <- hGetLine stdin
+                            lines <- readProgram
+                            return (line:lines)
 
 parse :: [String] -> [Command]
 parse lines = add 1 2
