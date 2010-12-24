@@ -32,32 +32,32 @@ run :: Program -> IO WmState
 run p = run' p initialState
 
 run' :: Program -> WmState -> IO WmState
-run' program (registers, counter) = runCommand' command (registers, counter) >>= h
+run' program (registers, counter) = runCommand command (registers, counter) >>= h
     where command = program !! counter
           h newState = if (halt newState) then return newState else run' program newState
 
 halt :: WmState -> Bool
 halt (registers, _) = getReg registers R0 == 100
 
-runCommand' :: Command -> WmState -> IO WmState
-runCommand' (Out reg) (state, cnt)   = (putStrLn $ show (getReg state reg)) >> 
-                                       return (runCommand (Out reg) state, updateCounter (Out reg) (state, cnt))
-runCommand' (Sleep reg) (state, cnt) = usleep ((getReg state reg) * 1000) >> 
-                                       return (runCommand (Sleep reg) state, updateCounter (Sleep reg) (state, cnt))
-runCommand' command (state, cnt)     = return (runCommand command state, updateCounter command (state, cnt))
+runCommand :: Command -> WmState -> IO WmState
+runCommand (Out reg) (state, cnt) = (putStrLn $ show (getReg state reg)) >> 
+                                    return (updateRegisters (Out reg) state, updateCounter (Out reg) (state, cnt))
+runCommand (Sleep reg) (state, cnt) = usleep ((getReg state reg) * 1000) >> 
+                                      return (updateRegisters (Sleep reg) state, updateCounter (Sleep reg) (state, cnt))
+runCommand command (state, cnt) = return (updateRegisters command state, updateCounter command (state, cnt))
 
-runCommand :: Command -> Registers -> Registers
-runCommand (Store x) state = setReg state R0 x
-runCommand (Inc reg) state = setReg state reg ((getReg state reg)+1)
-runCommand (Dec reg) state = setReg state reg ((getReg state reg)-1)
-runCommand (Not reg) state = setReg state reg (complement (getReg state reg))
-runCommand (And reg) state = setReg state R0  ((getReg state R0) .&. (getReg state R0))
-runCommand (Or  reg) state = setReg state R0  ((getReg state R0) .|. (getReg state R0)) 
-runCommand (Xor reg) state = setReg state R0  ((getReg state R0) `xor` (getReg state R0)) 
-runCommand (Xch reg) state = if reg == R0 then state else setReg (setReg state R0 regval) reg r0val
+updateRegisters :: Command -> Registers -> Registers
+updateRegisters (Store x) state = setReg state R0 x
+updateRegisters (Inc reg) state = setReg state reg ((getReg state reg)+1)
+updateRegisters (Dec reg) state = setReg state reg ((getReg state reg)-1)
+updateRegisters (Not reg) state = setReg state reg (complement (getReg state reg))
+updateRegisters (And reg) state = setReg state R0  ((getReg state R0) .&. (getReg state R0))
+updateRegisters (Or  reg) state = setReg state R0  ((getReg state R0) .|. (getReg state R0)) 
+updateRegisters (Xor reg) state = setReg state R0  ((getReg state R0) `xor` (getReg state R0)) 
+updateRegisters (Xch reg) state = if reg == R0 then state else setReg (setReg state R0 regval) reg r0val
     where r0val = getReg state R0
           regval = getReg state reg
-runCommand command state   = state
+updateRegisters command state   = state
 
 updateCounter :: Command -> WmState -> CommandCnt
 updateCounter (Jz  shift) (state, cnt) = if (getReg state R0) == 0 then cnt+shift else cnt+1
