@@ -41,10 +41,10 @@ halt (registers, _) = getReg registers R0 == 100
 
 runCommand' :: Command -> WmState -> IO WmState
 runCommand' (Out reg) (state, cnt)   = (putStrLn $ show (getReg state reg)) >> 
-                                       return (runCommand (Out reg) state, count (Out reg) (state, cnt))
+                                       return (runCommand (Out reg) state, updateCounter (Out reg) (state, cnt))
 runCommand' (Sleep reg) (state, cnt) = usleep ((getReg state reg) * 1000) >> 
-                                       return (runCommand (Sleep reg) state, count (Sleep reg) (state, cnt))
-runCommand' command (state, cnt)     = return (runCommand command state, count command (state, cnt))
+                                       return (runCommand (Sleep reg) state, updateCounter (Sleep reg) (state, cnt))
+runCommand' command (state, cnt)     = return (runCommand command state, updateCounter command (state, cnt))
 
 runCommand :: Command -> Registers -> Registers
 runCommand (Store x) state = setReg state R0 x
@@ -59,13 +59,13 @@ runCommand (Xch reg) state = if reg == R0 then state else setReg (setReg state R
           regval = getReg state reg
 runCommand command state   = state
 
-count :: Command -> WmState -> CommandCnt
-count (Jz  shift) (state, cnt) = if (getReg state R0) == 0 then cnt+shift else cnt+1
-count (Jnz shift) (state, cnt) = if not $ (getReg state R0) == 0 then cnt+shift else cnt+1
-count (Shr shift) (state, cnt) = cnt+shift
-count (Shl shift) (state, cnt) = cnt-shift
-count (Jmp reg)   (state, cnt) = getReg state reg
-count command     (_, cnt)     = cnt+1
+updateCounter :: Command -> WmState -> CommandCnt
+updateCounter (Jz  shift) (state, cnt) = if (getReg state R0) == 0 then cnt+shift else cnt+1
+updateCounter (Jnz shift) (state, cnt) = if not $ (getReg state R0) == 0 then cnt+shift else cnt+1
+updateCounter (Shr shift) (state, cnt) = cnt+shift
+updateCounter (Shl shift) (state, cnt) = cnt-shift
+updateCounter (Jmp reg)   (state, cnt) = getReg state reg
+updateCounter command     (_, cnt)     = cnt+1
 
 getReg :: Registers -> Reg -> Int
 getReg registers reg = registers !! fromEnum(reg)
