@@ -45,11 +45,12 @@ halt :: WmState -> Bool
 halt (registers, _) = getReg registers R0 == 100
 
 runCommand :: Command -> WmState -> IO WmState
-runCommand (Out reg) (state, cnt) = (putStrLn $ show (getReg state reg)) >> 
-                                    return (updateRegisters (Out reg) state, updateCounter (Out reg) (state, cnt))
-runCommand (Sleep reg) (state, cnt) = usleep ((getReg state reg) * 1000) >> 
-                                      return (updateRegisters (Sleep reg) state, updateCounter (Sleep reg) (state, cnt))
-runCommand command (state, cnt) = return (updateRegisters command state, updateCounter command (state, cnt))
+runCommand (Out reg) (state, cnt) = (putStrLn $ show (getReg state reg)) >> return (update (Out reg) (state, cnt))
+runCommand (Sleep reg) (state, cnt) = usleep ((getReg state reg) * 1000) >> return (update (Sleep reg) (state, cnt))
+runCommand command (state, cnt) = return (update command (state, cnt))
+
+update :: Command -> WmState -> WmState
+update command (state, cnt) = (updateRegisters command state, updateCounter command (state, cnt))
 
 updateRegisters :: Command -> Registers -> Registers
 updateRegisters (Store x) state = setReg state R0 x
