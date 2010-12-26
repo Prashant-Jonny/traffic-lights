@@ -1,6 +1,7 @@
 import System.IO
 import System.Posix.Unistd
 import Data.Bits
+import Data.Char
 
 data Command = Store Int 
              | Inc   Reg
@@ -120,10 +121,6 @@ add a b = [Store 200,
            Out   R1,
            Store 100]
 
-main = do lines <- readProgram
-          hPutStrLn stdout (show lines)
-          return (show (parse lines))
-                 
 readProgram :: IO [String]
 readProgram = do eof <- isEOF 
                  if eof
@@ -135,3 +132,98 @@ readProgram = do eof <- isEOF
 
 parse :: [String] -> [Command]
 parse lines = add 1 2
+
+
+newtype Parser a = MkP (String -> [(a, String)])
+
+apply :: Parser a -> String -> [(a, String)]
+apply (MkP f) s = f s
+
+applyParser :: Parser a -> String -> a
+applyParser p = fst . head . apply p
+
+instance Monad Parser where
+    return x = MkP f where f s = [(x, s)]
+    p >>= q  = MkP f
+               where f s = [(y, s'') | (x, s') <- apply p s, (y, s'') <- apply (q x) s']
+
+item :: Parser Char
+item = MkP f
+    where f [] = []
+          f (c:cs) = [(c, cs)]
+
+zero :: Parser a
+zero = MkP f where f s = []
+
+sat :: (Char -> Bool) -> Parser Char
+sat p = do {c <- item; if p c then return c else zero}
+
+char :: Char -> Parser ()
+char x = do {c <- sat (== x); return ()}
+
+string :: String -> Parser ()
+string [] = return ()
+string (x:xs) = do {char x; string xs; return ()}
+
+digit :: Parser Int
+digit = do {d <- sat Data.Char.isDigit; return (ord d - ord '0')}
+
+orelse :: Parser a -> Parser a -> Parser a
+p `orelse` q = MkP f
+               where f s = if null ps then apply q s else ps
+                           where ps = apply p s
+                                      
+many :: Parser a -> Parser [a]
+many p = do {x <- p; xs <- many p; return (x:xs)} `orelse` return []
+
+some :: Parser a -> Parser [a]
+some p = do {x <- p; xs <- many p; return (x:xs)}
+
+spaces :: Parser ()
+spaces = many (sat isSpace) >> return ()
+
+nat :: Parser Int
+nat = do {ds <- some digit; return (foldl1 op ds)}
+    where m `op` n = 10 * m + n
+
+register :: Parser Reg
+register = do {char 'R'; r <- nat; return (toEnum r)}
+
+store  = do {string "Store"; spaces; val <- nat;      spaces; return (Store val)}
+inc    = do {string "Inc";   spaces; reg <- register; spaces; return (Inc reg)}
+dec    = do {string "Dec";   spaces; reg <- register; spaces; return (Dec reg)}
+_not   = do {string "Not";   spaces; reg <- register; spaces; return (Not reg)}
+_and   = do {string "And";   spaces; reg <- register; spaces; return (And reg)}
+_or    = do {string "Or";    spaces; reg <- register; spaces; return (Or reg)}
+_xor   = do {string "Xor";   spaces; reg <- register; spaces; return (Xor reg)}
+xch    = do {string "Xch";   spaces; reg <- register; spaces; return (Xch reg)}
+jz     = do {string "Jz";    spaces; val <- nat;      spaces; return (Jz val)}
+jnz    = do {string "Jnz";   spaces; val <- nat;      spaces; return (Jnz val)}
+shr    = do {string "Shr";   spaces; val <- nat;      spaces; return (Shr val)}
+shl    = do {string "Shl";   spaces; val <- nat;      spaces; return (Shl val)}
+jmp    = do {string "Jmp";   spaces; reg <- register; spaces; return (Jmp reg)}
+out    = do {string "Out";   spaces; reg <- register; spaces; return (Out reg)}
+_sleep = do {string "Sleep"; spaces; reg <- register; spaces; return (Sleep reg)}
+nop    = do {string "Nop";   spaces; return Nop}
+
+command :: Parser Command
+command = store  `orelse`
+          inc    `orelse`
+          dec    `orelse`
+          _not   `orelse`
+          _and   `orelse`
+          _or    `orelse`
+          _xor   `orelse`
+          xch    `orelse`
+          jz     `orelse`
+          jnz    `orelse`
+          shr    `orelse`
+          shl    `orelse`
+          jmp    `orelse`
+          out    `orelse`
+          _sleep `orelse`
+          nop
+
+program :: Parser Program
+program = some command
+
