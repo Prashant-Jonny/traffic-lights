@@ -130,8 +130,6 @@ readProgram = do eof <- isEOF
                             lines <- readProgram
                             return (line:lines)
 
-parse :: [String] -> [Command]
-parse lines = add 1 2
 
 
 newtype Parser a = MkP (String -> [(a, String)])
