@@ -131,6 +131,25 @@ readProgram = do eof <- isEOF
                             return (line:lines)
 
 
+newtype EXC m a = MkEXC (m (Exc a))
+data Exc a = Error String | Return a deriving (Show)
+
+recover :: EXC m a -> m (Exc a)
+recover (MkEXC g) = g
+
+instance Monad m => Monad (EXC m) where
+    return x = MkEXC (return (Return x))
+    p >>= q  = MkEXC (recover p >>= r)
+               where r (Error e)   = return (Error e)
+                     r (Return x) = recover (q x)
+
+class Transformer t where
+    promote :: Monad m => m a -> t m a
+
+instance Transformer EXC where
+    promote g = MkEXC (do {x <- g; return (Return x)})
+
+
 
 newtype Parser a = MkP (String -> [(a, String)])
 
@@ -187,24 +206,31 @@ nat = do {ds <- some digit; return (foldl1 op ds)}
 register :: Parser Reg
 register = do {char 'R'; r <- nat; return (toEnum r)}
 
-store  = do {string "Store"; spaces; val <- nat;      spaces; return (Store val)}
-inc    = do {string "Inc";   spaces; reg <- register; spaces; return (Inc reg)}
-dec    = do {string "Dec";   spaces; reg <- register; spaces; return (Dec reg)}
-_not   = do {string "Not";   spaces; reg <- register; spaces; return (Not reg)}
-_and   = do {string "And";   spaces; reg <- register; spaces; return (And reg)}
-_or    = do {string "Or";    spaces; reg <- register; spaces; return (Or reg)}
-_xor   = do {string "Xor";   spaces; reg <- register; spaces; return (Xor reg)}
-xch    = do {string "Xch";   spaces; reg <- register; spaces; return (Xch reg)}
-jz     = do {string "Jz";    spaces; val <- nat;      spaces; return (Jz val)}
-jnz    = do {string "Jnz";   spaces; val <- nat;      spaces; return (Jnz val)}
-shr    = do {string "Shr";   spaces; val <- nat;      spaces; return (Shr val)}
-shl    = do {string "Shl";   spaces; val <- nat;      spaces; return (Shl val)}
-jmp    = do {string "Jmp";   spaces; reg <- register; spaces; return (Jmp reg)}
-out    = do {string "Out";   spaces; reg <- register; spaces; return (Out reg)}
-_sleep = do {string "Sleep"; spaces; reg <- register; spaces; return (Sleep reg)}
-nop    = do {string "Nop";   spaces; return Nop}
+intError :: String -> Int -> Exc a
+intError command arg = Error ("Wrong argument of command '" ++ command ++ "' - " ++ (show arg))
 
-command :: Parser Command
+store  = do {string "Store"; spaces; val <- nat; spaces; 
+             if isValidInt val then return (Return (Store val)) else return (intError "Store" val)}
+inc    = do {string "Inc";   spaces; reg <- register; spaces; return (Return (Inc reg))}
+dec    = do {string "Dec";   spaces; reg <- register; spaces; return (Return (Dec reg))}
+_not   = do {string "Not";   spaces; reg <- register; spaces; return (Return (Not reg))}
+_and   = do {string "And";   spaces; reg <- register; spaces; return (Return (And reg))}
+_or    = do {string "Or";    spaces; reg <- register; spaces; return (Return (Or reg))}
+_xor   = do {string "Xor";   spaces; reg <- register; spaces; return (Return (Xor reg))}
+xch    = do {string "Xch";   spaces; reg <- register; spaces; return (Return (Xch reg))}
+jz     = do {string "Jz";    spaces; val <- nat;      spaces; return (Return (Jz val))}
+jnz    = do {string "Jnz";   spaces; val <- nat;      spaces; return (Return (Jnz val))}
+shr    = do {string "Shr";   spaces; val <- nat;      spaces; return (Return (Shr val))}
+shl    = do {string "Shl";   spaces; val <- nat;      spaces; return (Return (Shl val))}
+jmp    = do {string "Jmp";   spaces; reg <- register; spaces; return (Return (Jmp reg))}
+out    = do {string "Out";   spaces; reg <- register; spaces; return (Return (Out reg))}
+_sleep = do {string "Sleep"; spaces; reg <- register; spaces; return (Return (Sleep reg))}
+nop    = do {string "Nop";   spaces; return (Return Nop)}
+
+isValidInt :: Int -> Bool
+isValidInt i = i >= 0 && i < 16
+
+command :: Parser (Exc Command)
 command = store  `orelse`
           inc    `orelse`
           dec    `orelse`
@@ -222,6 +248,7 @@ command = store  `orelse`
           _sleep `orelse`
           nop
 
-program :: Parser Program
+
+program :: Parser [(Exc Command)]
 program = some command
 
