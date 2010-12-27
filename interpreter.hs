@@ -5,55 +5,11 @@ import Data.Char
 import Data.Word
 import qualified Data.ByteString.Lazy as L
 import List
-
-data Command = Store Int 
-             | Inc   Reg
-             | Dec   Reg
-             | Not   Reg
-             | And   Reg
-             | Or    Reg
-             | Xor   Reg
-             | Xch   Reg
-             | Jz    Int
-             | Jnz   Int
-             | Shr   Int
-             | Shl   Int
-             | Jmp   Reg
-             | Out   Reg
-             | Sleep Reg
-             | Nop 
-               deriving (Show)
+import Types
 
 type Shift = Int
-type Label = String
-data LCommand = Store' Int 
-              | Inc'   Reg
-              | Dec'   Reg
-              | Not'   Reg
-              | And'   Reg
-              | Or'    Reg
-              | Xor'   Reg
-              | Xch'   Reg
-              | Jz'    Int
-              | Jnz'   Int
-              | Jz''   Label
-              | Jnz''  Label
-              | Shr'   Int
-              | Shl'   Int
-              | Jmp'   Reg
-              | Out'   Reg
-              | Sleep' Reg
-              | Nop' 
-              | Labeled LCommand Label
-                deriving (Show)
 
 type ProgramWithLabels = [LCommand]
-
-data Reg = R0  | R1  | R2  | R3 
-         | R4  | R5  | R6  | R7 
-         | R8  | R9  | R10 | R11 
-         | R12 | R13 | R14 | R15 
-           deriving (Eq, Enum, Show)
 
 type Program    = [Command]
 type Registers  = [Int]
@@ -311,8 +267,8 @@ unlabel_command labelPositions lcommand =
       ((Xch'   r), _) -> Xch r   
       ((Jz'    s), _) -> Jz  s
       ((Jnz'   s), _) -> Jnz s   
-      ((Jz''   l), s) -> Jz  (label2shift labelPositions s l)
-      ((Jnz''  l), s) -> Jnz (label2shift labelPositions s l)
+      ((Jzl    l), s) -> Jz  (label2shift labelPositions s l)
+      ((Jnzl   l), s) -> Jnz (label2shift labelPositions s l)
       ((Shr'   s), _) -> Shr s
       ((Shl'   s), _) -> Shl s
       ((Jmp'   r), _) -> Jmp r    
@@ -342,7 +298,7 @@ add2 a b = [Store' a,
             Store' b, 
             Labeled (Inc' R1) "Start",
             Dec'   R0,
-            Jnz''  "Start",
+            Jnzl  "Start",
             Out'   R1,
             Store' 100]
 
