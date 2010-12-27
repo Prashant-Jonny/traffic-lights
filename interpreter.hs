@@ -23,6 +23,8 @@ data Command = Store Int
              | Nop 
                deriving (Show)
 
+data Label = Label Command
+
 data Reg = R0  | R1  | R2  | R3 
          | R4  | R5  | R6  | R7 
          | R8  | R9  | R10 | R11 
@@ -227,18 +229,20 @@ some p = do {x <- p; xs <- many p; return (x:xs)}
 spaces :: Parser ()
 spaces = many (sat isSpace) >> return ()
 
-nat :: Parser Int
-nat = do {ds <- some digit; return (foldl1 op ds)}
-    where m `op` n = 10 * m + n
+nat :: Int -> Parser Int
+nat max = do ds <- some digit
+             let m `op` n = 10 * m + n
+                 d = foldl1 op ds
+                 valid = d <= max
+             if valid then return d else error ""
 
 register :: Parser Reg
-register = do {char 'R'; r <- nat; return (toEnum r)}
+register = do {char 'R'; r <- nat 15; return (toEnum r)}
 
 intError :: String -> Int -> Exc a
 intError command arg = Error ("Wrong argument of command '" ++ command ++ "' - " ++ (show arg))
 
-store  = do {string "Store"; spaces; val <- nat; spaces; 
-             if isValidInt val then return (Return (Store val)) else return (intError "Store" val)}
+store  = do {string "Store"; spaces; val <- nat 15;   spaces; return (Return (Store val))}
 inc    = do {string "Inc";   spaces; reg <- register; spaces; return (Return (Inc reg))}
 dec    = do {string "Dec";   spaces; reg <- register; spaces; return (Return (Dec reg))}
 _not   = do {string "Not";   spaces; reg <- register; spaces; return (Return (Not reg))}
@@ -246,10 +250,10 @@ _and   = do {string "And";   spaces; reg <- register; spaces; return (Return (An
 _or    = do {string "Or";    spaces; reg <- register; spaces; return (Return (Or reg))}
 _xor   = do {string "Xor";   spaces; reg <- register; spaces; return (Return (Xor reg))}
 xch    = do {string "Xch";   spaces; reg <- register; spaces; return (Return (Xch reg))}
-jz     = do {string "Jz";    spaces; val <- nat;      spaces; return (Return (Jz val))}
-jnz    = do {string "Jnz";   spaces; val <- nat;      spaces; return (Return (Jnz val))}
-shr    = do {string "Shr";   spaces; val <- nat;      spaces; return (Return (Shr val))}
-shl    = do {string "Shl";   spaces; val <- nat;      spaces; return (Return (Shl val))}
+jz     = do {string "Jz";    spaces; val <- nat 15;   spaces; return (Return (Jz val))}
+jnz    = do {string "Jnz";   spaces; val <- nat 15;   spaces; return (Return (Jnz val))}
+shr    = do {string "Shr";   spaces; val <- nat 15;   spaces; return (Return (Shr val))}
+shl    = do {string "Shl";   spaces; val <- nat 15;   spaces; return (Return (Shl val))}
 jmp    = do {string "Jmp";   spaces; reg <- register; spaces; return (Return (Jmp reg))}
 out    = do {string "Out";   spaces; reg <- register; spaces; return (Return (Out reg))}
 _sleep = do {string "Sleep"; spaces; reg <- register; spaces; return (Return (Sleep reg))}
@@ -276,10 +280,15 @@ command = store  `orelse`
           _sleep `orelse`
           nop
 
+check :: Program -> [(Exc Command)]
+check = undefined
+
+
 
 program :: Parser [(Exc Command)]
 program = some command
 
 main = do text <- hGetContents stdin
-          let result = compile2 (applyParser program text)
+          let prog   = applyParser program text
+              result = compile2 prog
           L.putStr result
