@@ -280,3 +280,6 @@ command = store  `orelse`
 program :: Parser [(Exc Command)]
 program = some command
 
+main = do text <- hGetContents stdin
+          let result = compile2 (applyParser program text)
+          L.putStr result
