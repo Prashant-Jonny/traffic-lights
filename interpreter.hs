@@ -139,16 +139,6 @@ add a b = [Store 200,
            Out   R1,
            Store 100]
 
-readProgram :: IO [String]
-readProgram = do eof <- isEOF 
-                 if eof
-                    then do hPutStrLn stdout "eof"
-                            return [] 
-                    else do line <- hGetLine stdin
-                            lines <- readProgram
-                            return (line:lines)
-
-
 newtype EXC m a = MkEXC (m (Exc a))
 data Exc a = Error String | Return a deriving (Show)
 
