@@ -212,7 +212,7 @@ nat max = do ds <- some digit
              let m `op` n = 10 * m + n
                  d = foldl1 op ds
                  valid = d <= max
-             if valid then return d else error ""
+             if valid then return d else error $ "Wrong digit: " ++ (show d)
 
 register :: Parser Reg
 register = do {char 'R'; r <- nat 15; return (toEnum r)}
