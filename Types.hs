@@ -61,9 +61,9 @@ data Command = Store Int
 type Program = [Command]
 type ProgramWithLabels = [LCommand]
 
-type Registers  = [Int]
+type Registers = [Int]
 
 type CommandCnt = Int
 
-type WmState    = (Registers, CommandCnt)
+type WmState = (Registers, CommandCnt)
 
