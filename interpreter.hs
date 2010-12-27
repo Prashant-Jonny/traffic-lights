@@ -101,22 +101,24 @@ compileCommand (Error s) = error s
 compileCommand (Return c) = compileCommand' c
 
 compileCommand' :: Command -> Word8
-compileCommand' (Store x)   = 0x00 .|. fromIntegral(x)
-compileCommand' (Inc reg)   = 0x10 .|. fromIntegral(fromEnum(reg)) 
-compileCommand' (Dec reg)   = 0x20 .|. fromIntegral(fromEnum(reg)) 
-compileCommand' (Not reg)   = 0x30 .|. fromIntegral(fromEnum(reg)) 
-compileCommand' (And reg)   = 0x40 .|. fromIntegral(fromEnum(reg)) 
-compileCommand' (Or  reg)   = 0x50 .|. fromIntegral(fromEnum(reg)) 
-compileCommand' (Xor reg)   = 0x60 .|. fromIntegral(fromEnum(reg)) 
-compileCommand' (Xch reg)   = 0x70 .|. fromIntegral(fromEnum(reg)) 
-compileCommand' (Jz  shift) = 0x80 .|. fromIntegral(shift) 
-compileCommand' (Jnz shift) = 0x90 .|. fromIntegral(shift) 
-compileCommand' (Shr shift) = 0xa0 .|. fromIntegral(shift) 
-compileCommand' (Shl shift) = 0xb0 .|. fromIntegral(shift) 
-compileCommand' (Jmp reg)   = 0xc0 .|. fromIntegral(fromEnum(reg)) 
-compileCommand' (Out reg)   = 0xd0 .|. fromIntegral(fromEnum(reg)) 
-compileCommand' (Sleep reg) = 0xe0 .|. fromIntegral(fromEnum(reg)) 
-compileCommand' Nop         = 0xff
+compileCommand' command = 
+    case command of 
+      Store x   -> 0x00 .|. fromIntegral(x)              
+      Inc reg   -> 0x10 .|. fromIntegral(fromEnum(reg))  
+      Dec reg   -> 0x20 .|. fromIntegral(fromEnum(reg))  
+      Not reg   -> 0x30 .|. fromIntegral(fromEnum(reg))  
+      And reg   -> 0x40 .|. fromIntegral(fromEnum(reg))  
+      Or  reg   -> 0x50 .|. fromIntegral(fromEnum(reg))  
+      Xor reg   -> 0x60 .|. fromIntegral(fromEnum(reg))  
+      Xch reg   -> 0x70 .|. fromIntegral(fromEnum(reg))  
+      Jz  shift -> 0x80 .|. fromIntegral(shift)          
+      Jnz shift -> 0x90 .|. fromIntegral(shift)          
+      Shr shift -> 0xa0 .|. fromIntegral(shift)          
+      Shl shift -> 0xb0 .|. fromIntegral(shift)          
+      Jmp reg   -> 0xc0 .|. fromIntegral(fromEnum(reg))  
+      Out reg   -> 0xd0 .|. fromIntegral(fromEnum(reg))  
+      Sleep reg -> 0xe0 .|. fromIntegral(fromEnum(reg))  
+      Nop       -> 0xff                                  
 
 
 decode :: Int -> Int
