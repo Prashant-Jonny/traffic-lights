@@ -4,6 +4,7 @@ import Data.Bits
 import Data.Char
 import Data.Word
 import qualified Data.ByteString.Lazy as L
+import List
 
 data Command = Store Int 
              | Inc   Reg
@@ -23,7 +24,30 @@ data Command = Store Int
              | Nop 
                deriving (Show)
 
-data Label = Label Command
+type Shift = Int
+type Label = String
+data LCommand = Store' Int 
+              | Inc'   Reg
+              | Dec'   Reg
+              | Not'   Reg
+              | And'   Reg
+              | Or'    Reg
+              | Xor'   Reg
+              | Xch'   Reg
+              | Jz'    Int
+              | Jnz'   Int
+              | Jz''   Label
+              | Jnz''  Label
+              | Shr'   Int
+              | Shl'   Int
+              | Jmp'   Reg
+              | Out'   Reg
+              | Sleep' Reg
+              | Nop' 
+              | Labeled LCommand Label
+                deriving (Show)
+
+type ProgramWithLabels = [LCommand]
 
 data Reg = R0  | R1  | R2  | R3 
          | R4  | R5  | R6  | R7 
@@ -124,6 +148,10 @@ compileCommand' command =
 decode :: Int -> Int
 decode x = if (x >= 0 && x < 8) then x
            else -(x `mod` 8 + 1)
+
+encode :: Int -> Int
+encode x = if (x >= 0 && x < 8) then x
+           else 7 - x
 
 add :: Int -> Int -> Program
 add a b = [Store 200,
@@ -265,6 +293,58 @@ check = undefined
 
 program :: Parser [(Exc Command)]
 program = some command
+
+unlabel :: ProgramWithLabels -> Program
+unlabel prog = map (unlabel_command lps) $ zip prog [0..(length prog)]
+    where lps = labelPositions prog
+
+unlabel_command :: [(Label, Shift)] -> (LCommand, Shift) -> Command
+unlabel_command labelPositions lcommand =
+    case lcommand of
+      ((Store' x), _) -> Store x 
+      ((Inc'   r), _) -> Inc r   
+      ((Dec'   r), _) -> Dec r   
+      ((Not'   r), _) -> Not r   
+      ((And'   r), _) -> And r   
+      ((Or'    r), _) -> Or  r   
+      ((Xor'   r), _) -> Xor r   
+      ((Xch'   r), _) -> Xch r   
+      ((Jz'    s), _) -> Jz  s
+      ((Jnz'   s), _) -> Jnz s   
+      ((Jz''   l), s) -> Jz  (label2shift labelPositions s l)
+      ((Jnz''  l), s) -> Jnz (label2shift labelPositions s l)
+      ((Shr'   s), _) -> Shr s
+      ((Shl'   s), _) -> Shl s
+      ((Jmp'   r), _) -> Jmp r    
+      ((Out'   r), _) -> Out r    
+      ((Sleep' r), _) -> Sleep r  
+      (Nop',     _) -> Nop      
+      ((Labeled lcommand label), s) -> unlabel_command labelPositions (lcommand, s)
+
+
+labelPositions :: ProgramWithLabels -> [(Label, Shift)]
+labelPositions prog = map l . filter labels $ zip prog [0..(length prog)] 
+    where labels (command, _) = case command of
+                                  Labeled _ _ -> True
+                                  otherwise -> False
+          l ((Labeled c l), pos) = (l, pos)
+
+label2shift :: [(Label, Shift)] -> Shift -> Label -> Shift
+label2shift lps s label = case p of 
+                            Just smth -> encode((snd smth) - s)
+                            otherwise -> error "Label not found"
+    where pred (l, pos) = l == label
+          p = find pred lps
+
+add2 :: Int -> Int -> ProgramWithLabels
+add2 a b = [Store' a, 
+            Xch'   R1, 
+            Store' b, 
+            Labeled (Inc' R1) "Start",
+            Dec'   R0,
+            Jnz''  "Start",
+            Out'   R1,
+            Store' 100]
 
 main = do text <- hGetContents stdin
           let prog   = applyParser program text
