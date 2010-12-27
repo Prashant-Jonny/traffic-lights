@@ -2,6 +2,8 @@ import System.IO
 import System.Posix.Unistd
 import Data.Bits
 import Data.Char
+import Data.Word
+import qualified Data.ByteString.Lazy as L
 
 data Command = Store Int 
              | Inc   Reg
@@ -82,6 +84,32 @@ setReg :: Registers -> Reg -> Int -> Registers
 setReg registers reg val = take r registers ++ [val] ++ drop (r+1) registers
                            where r = fromEnum reg
 
+compile2 :: [(Exc Command)] -> L.ByteString
+compile2 = L.pack . map compileCommand2
+
+compileCommand2 :: (Exc Command) -> Word8
+compileCommand2 (Error s) = error s
+compileCommand2 (Return c) = compileCommand2' c
+
+compileCommand2' :: Command -> Word8
+compileCommand2' (Store x)   = 0x00 .|. fromIntegral(x)
+compileCommand2' (Inc reg)   = 0x10 .|. fromIntegral(fromEnum(reg)) 
+compileCommand2' (Dec reg)   = 0x20 .|. fromIntegral(fromEnum(reg)) 
+compileCommand2' (Not reg)   = 0x30 .|. fromIntegral(fromEnum(reg)) 
+compileCommand2' (And reg)   = 0x40 .|. fromIntegral(fromEnum(reg)) 
+compileCommand2' (Or  reg)   = 0x50 .|. fromIntegral(fromEnum(reg)) 
+compileCommand2' (Xor reg)   = 0x60 .|. fromIntegral(fromEnum(reg)) 
+compileCommand2' (Xch reg)   = 0x70 .|. fromIntegral(fromEnum(reg)) 
+compileCommand2' (Jz  shift) = 0x80 .|. fromIntegral(shift) 
+compileCommand2' (Jnz shift) = 0x90 .|. fromIntegral(shift) 
+compileCommand2' (Shr shift) = 0xa0 .|. fromIntegral(shift) 
+compileCommand2' (Shl shift) = 0xb0 .|. fromIntegral(shift) 
+compileCommand2' (Jmp reg)   = 0xc0 .|. fromIntegral(fromEnum(reg)) 
+compileCommand2' (Out reg)   = 0xd0 .|. fromIntegral(fromEnum(reg)) 
+compileCommand2' (Sleep reg) = 0xe0 .|. fromIntegral(fromEnum(reg)) 
+compileCommand2' Nop         = 0xff
+
+
 compile :: Program -> [Int]
 compile = map compileCommand
 
@@ -90,22 +118,22 @@ decode x = if (x >= 0 && x < 8) then x
            else -(x `mod` 8 + 1)
 
 compileCommand :: Command -> Int
-compileCommand (Store x)   =  0 .|. x
-compileCommand (Inc reg)   =  1 .|. fromEnum(reg)
-compileCommand (Dec reg)   =  2 .|. fromEnum(reg)
-compileCommand (Not reg)   =  3 .|. fromEnum(reg) 
-compileCommand (And reg)   =  4 .|. fromEnum(reg) 
-compileCommand (Or  reg)   =  5 .|. fromEnum(reg) 
-compileCommand (Xor reg)   =  6 .|. fromEnum(reg) 
-compileCommand (Xch reg)   =  7 .|. fromEnum(reg) 
-compileCommand (Jz  shift) =  8 .|. shift
-compileCommand (Jnz shift) =  9 .|. shift
-compileCommand (Shr shift) = 10 .|. shift
-compileCommand (Shl shift) = 11 .|. shift
-compileCommand (Jmp reg)   = 12 .|. fromEnum(reg) 
-compileCommand (Out reg)   = 13 .|. fromEnum(reg) 
-compileCommand (Sleep reg) = 14 .|. fromEnum(reg) 
-compileCommand Nop         = 256
+compileCommand (Store x)   = 0x00 .|. x
+compileCommand (Inc reg)   = 0x10 .|. fromEnum(reg)
+compileCommand (Dec reg)   = 0x20 .|. fromEnum(reg)
+compileCommand (Not reg)   = 0x30 .|. fromEnum(reg) 
+compileCommand (And reg)   = 0x40 .|. fromEnum(reg) 
+compileCommand (Or  reg)   = 0x50 .|. fromEnum(reg) 
+compileCommand (Xor reg)   = 0x60 .|. fromEnum(reg) 
+compileCommand (Xch reg)   = 0x70 .|. fromEnum(reg) 
+compileCommand (Jz  shift) = 0x80 .|. shift
+compileCommand (Jnz shift) = 0x90 .|. shift
+compileCommand (Shr shift) = 0xa0 .|. shift
+compileCommand (Shl shift) = 0xb0 .|. shift
+compileCommand (Jmp reg)   = 0xc0 .|. fromEnum(reg) 
+compileCommand (Out reg)   = 0xd0 .|. fromEnum(reg) 
+compileCommand (Sleep reg) = 0xe0 .|. fromEnum(reg) 
+compileCommand Nop         = 0xff
 
 add :: Int -> Int -> Program
 add a b = [Store 200,
