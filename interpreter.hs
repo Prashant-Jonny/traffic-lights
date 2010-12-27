@@ -70,7 +70,7 @@ updateRegisters command state =
       And reg   -> setReg state R0  ((getReg state R0) .&. (getReg state R0))    
       Or  reg   -> setReg state R0  ((getReg state R0) .|. (getReg state R0))    
       Xor reg   -> setReg state R0  ((getReg state R0) `xor` (getReg state R0))  
-      Xch reg   -> if reg == R0 then state else setReg (setReg state R0 regval) reg r0val
+      Xch reg   -> setReg (setReg state R0 regval) reg r0val
         where r0val  = getReg state R0
               regval = getReg state reg
       otherwise -> state
