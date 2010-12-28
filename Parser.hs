@@ -1,4 +1,4 @@
-module Parser (parse) where
+module Parser (parse, encode) where
 
 import Types
 import Data.Char
