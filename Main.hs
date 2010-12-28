@@ -1,3 +1,5 @@
+#!/usr/bin/env runghc
+
 module Main () where
 
 import qualified Data.ByteString.Lazy as L
