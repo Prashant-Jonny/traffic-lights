@@ -23,7 +23,8 @@ unlabel prog = map (unlabel_command lps) $ zip prog [0..(length prog)]
 unlabel_command :: [(Label, Shift)] -> (LCommand, Shift) -> Command
 unlabel_command labelPositions lcommand =
     case lcommand of
-      ((Store' x), _) -> Store x 
+      ((Store' x), _) -> if (validHex x) then Store x
+                        else error ("Argument '" ++ (show x) ++ "' is too big in 'Store " ++ (show x) ++ "'")
       ((Inc'   r), _) -> Inc r   
       ((Dec'   r), _) -> Dec r   
       ((Not'   r), _) -> Not r   
@@ -31,8 +32,10 @@ unlabel_command labelPositions lcommand =
       ((Or'    r), _) -> Or  r   
       ((Xor'   r), _) -> Xor r   
       ((Xch'   r), _) -> Xch r   
-      ((Jz'    s), _) -> Jz  s
-      ((Jnz'   s), _) -> Jnz s   
+      ((Jz'    s), _) -> if (validHex s) then Jz s
+                        else error ("Shift '" ++ (show s) ++ "' is too big in 'Jz " ++ (show s) ++ "'")
+      ((Jnz'   s), _) -> if (validHex s) then Jnz s
+                        else error ("Shift '" ++ (show s) ++ "' is too big in 'Jnz " ++ (show s) ++ "'")
       ((Jzl    l), s) -> case shift of 
                           Right s -> Jz s
                           Left e -> error (e ++ " in 'Jz " ++ l ++ "'")
