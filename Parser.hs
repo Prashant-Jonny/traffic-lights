@@ -32,15 +32,11 @@ unlabel_command labelPositions lcommand =
       ((Or'    r), _) -> Or  r   
       ((Xor'   r), _) -> Xor r   
       ((Xch'   r), _) -> Xch r   
-      ((Jz'    s), _) -> if (validHex s) then Jz s
-                        else error ("Shift '" ++ (show s) ++ "' is too big in 'Jz " ++ (show s) ++ "'")
-      ((Jnz'   s), _) -> if (validHex s) then Jnz s
-                        else error ("Shift '" ++ (show s) ++ "' is too big in 'Jnz " ++ (show s) ++ "'")
-      ((Jzl    l), s) -> case shift of 
+      ((Jz'    l), s) -> case shift of 
                           Right s -> Jz s
                           Left e -> error (e ++ " in 'Jz " ++ l ++ "'")
                         where shift = (label2shift labelPositions s l)
-      ((Jnzl   l), s) -> case shift of 
+      ((Jnz'   l), s) -> case shift of 
                           Right s -> Jnz s
                           Left e -> error (e ++ " in 'Jnz " ++ l ++ "'")
                         where shift = (label2shift labelPositions s l)
@@ -107,10 +103,8 @@ _and   = do {P.string "And";   spaces1; reg <- register; spaces; return (And' re
 _or    = do {P.string "Or";    spaces1; reg <- register; spaces; return (Or' reg)}
 _xor   = do {P.string "Xor";   spaces1; reg <- register; spaces; return (Xor' reg)}
 xch    = do {P.string "Xch";   spaces1; reg <- register; spaces; return (Xch' reg)}
-jz     = do {P.string "Jz";    spaces1; val <- nat;      spaces; return (Jz' val)}
-jnz    = do {P.string "Jnz";   spaces1; val <- nat;      spaces; return (Jnz' val)}
-jzl    = do {P.string "Jz";    spaces1; val <- P.many (P.noneOf " \n\r\t"); spaces; return (Jzl val)}
-jnzl   = do {P.string "Jnz";   spaces1; val <- P.many (P.noneOf " \n\r\t"); spaces; return (Jnzl val)}
+jz     = do {P.string "Jz";    spaces1; val <- P.many (P.noneOf " \n\r\t"); spaces; return (Jz' val)}
+jnz    = do {P.string "Jnz";   spaces1; val <- P.many (P.noneOf " \n\r\t"); spaces; return (Jnz' val)}
 shr    = do {P.string "Shr";   spaces1; val <- nat;      spaces; return (Shr' val)}
 shl    = do {P.string "Shl";   spaces1; val <- nat;      spaces; return (Shl' val)}
 jmp    = do {P.string "Jmp";   spaces1; reg <- register; spaces; return (Jmp' reg)}
@@ -130,10 +124,8 @@ command = P.try(label)  P.<|>
           P.try(_or)    P.<|> 
           P.try(_xor)   P.<|> 
           P.try(xch)    P.<|> 
-          P.try(jz)     P.<|> 
-          P.try(jnz)    P.<|> 
-          P.try(jzl)    P.<|> 
-          P.try(jnzl)   P.<|> 
+          P.try(jz)    P.<|> 
+          P.try(jnz)   P.<|> 
           P.try(shr)    P.<|> 
           P.try(shl)    P.<|> 
           P.try(jmp)    P.<|> 

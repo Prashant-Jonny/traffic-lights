@@ -27,10 +27,8 @@ data LCommand = Store' Int
               | Or'    Reg
               | Xor'   Reg
               | Xch'   Reg
-              | Jz'    Shift
-              | Jnz'   Shift
-              | Jzl    Label
-              | Jnzl   Label
+              | Jz'    Label
+              | Jnz'   Label
               | Shr'   Shift
               | Shl'   Shift
               | Jmp'   Reg
