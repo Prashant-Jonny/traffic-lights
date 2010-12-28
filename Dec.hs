@@ -10,4 +10,5 @@ import Parser
 
 main = do bytes <- L.hGetContents stdin
           let prog = decompile bytes
-          putStr $ show prog
+          putStr $ foldr f "" prog
+              where f c rest = (show c) ++ "\n" ++ rest
