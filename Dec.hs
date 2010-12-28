@@ -1,6 +1,6 @@
 #!/usr/bin/env runghc
 
-module Main () where
+module Dec (main) where
 
 import qualified Data.ByteString.Lazy as L
 import System.IO (stdin, stdout, putStr)
