@@ -36,7 +36,28 @@ data LCommand = Store' Int
               | Sleep' Reg
               | Nop' 
               | Labeled LCommand Label
-                deriving (Show)
+
+instance Show LCommand where
+    show command = 
+        case command of 
+          Store' x    -> "Store " ++ (show x)
+          Inc'   r    -> "Inc "   ++ (show r) 
+          Dec'   r    -> "Dec "   ++ (show r) 
+          Not'   r    -> "Not "   ++ (show r) 
+          And'   r    -> "And "   ++ (show r) 
+          Or'    r    -> "Or "    ++ (show r) 
+          Xor'   r    -> "Xor "   ++ (show r) 
+          Xch'   r    -> "Xch "   ++ (show r) 
+          Jz'    l    -> "Jz "    ++ l 
+          Jnz'   l    -> "Jnz "   ++ l
+          Shr'   s    -> "Shr "   ++ (show s) 
+          Shl'   s    -> "Shl "   ++ (show s) 
+          Jmp'   r    -> "Jmp "   ++ (show r) 
+          Out'   r    -> "Out "   ++ (show r) 
+          Sleep' r    -> "Sleep " ++ (show r) 
+          Nop'        -> "Nop"
+          Labeled c l -> l ++ ": " ++ (show c)
+
 
 data Command = Store Int 
              | Inc   Reg
