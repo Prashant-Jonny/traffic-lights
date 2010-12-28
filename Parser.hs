@@ -63,8 +63,8 @@ labelPositions prog = map l . filter labels $ zip prog [0..(length prog)]
 label2shift :: [(Label, Shift)] -> Shift -> Label -> Either String Shift
 label2shift label_positions command_pos label = 
     case label_and_pos of 
-      Just smth -> if (validHex relative_shift) then (Right (encode relative_shift))
-                  else (Left ("Shift '" ++ (show relative_shift) ++ "' is too big"))
+      Just smth -> if (validHex (encode relative_shift)) then (Right (encode relative_shift))
+                  else (Left ("Shift '" ++ (show $ encode relative_shift) ++ "' is too big"))
                       where relative_shift = (snd smth) - command_pos
       otherwise -> (Left ("Label '" ++ label ++ "' not found"))
     where pred = (label ==) . fst 
