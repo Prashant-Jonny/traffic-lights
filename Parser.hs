@@ -72,9 +72,13 @@ nat = do ds <- P.many1 dig
          return (foldl1 op ds)
              where m `op` n = 10 * m + n
                                   
-
 register :: P.GenParser Char st Reg
-register = do {P.char 'R'; r <- nat; return (toEnum r)}
+register = do {P.char 'R'; r <- nat; 
+               if validHex r then return (toEnum r)
+               else error ("Wrong register R"++(show r))}
+
+validHex :: Int -> Bool
+validHex d = 0 <= d && d < 16
 
 spaces = P.many P.space
 spaces1 = P.many1 P.space
