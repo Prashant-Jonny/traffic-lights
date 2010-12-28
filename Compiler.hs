@@ -1,9 +1,11 @@
 module Compiler (compile, decompile) where
 
 import Types
+import Parser (encode)
 import qualified Data.ByteString.Lazy as L
 import Data.Bits
 import Data.Word
+import qualified Data.Map as Map
 
 compile :: Program -> L.ByteString
 compile = L.pack . map compileCommand
@@ -29,8 +31,10 @@ compileCommand command =
       Nop       -> 0xff                                  
 
 
-decompile :: L.ByteString -> Program
-decompile = map decompileCommand . L.unpack
+decompile :: L.ByteString -> ProgramWithLabels
+decompile bytes = with_labels (label_map program) program
+    where program = map decompileCommand $ L.unpack bytes
+          lpositions = label_positions program
 
 decompileCommand :: Word8 -> Command
 decompileCommand byte = decompileCommand' command arg
@@ -57,3 +61,46 @@ decompileCommand' command arg
     | command == 14 = Sleep (toEnum (fromIntegral arg))
     | command == 15 && arg == 15 = Nop
 
+--with_labels ::  -> Program -> ProgramWithLabels
+with_labels lmap prog = foldr f [] $ zip [0..] prog
+    where f (pos, command) result = (toLCommand lmap command pos):result
+
+--toLCommand :: Command -> LCommand
+toLCommand lmap c pos = 
+    case c of 
+      Store x -> wrap (Store' x)
+      Inc   r -> wrap (Inc'   r) 
+      Dec   r -> wrap (Dec'   r) 
+      Not   r -> wrap (Not'   r) 
+      And   r -> wrap (And'   r) 
+      Or    r -> wrap (Or'    r) 
+      Xor   r -> wrap (Xor'   r) 
+      Xch   r -> wrap (Xch'   r) 
+      Jz    s -> wrap (Jz'    (get_label s))
+      Jnz   s -> wrap (Jnz'   (get_label s))
+      Shr   s -> wrap (Shr'   s) 
+      Shl   s -> wrap (Shl'   s) 
+      Jmp   r -> wrap (Jmp'   r) 
+      Out   r -> wrap (Out'   r) 
+      Sleep r -> wrap (Sleep' r) 
+      Nop     -> wrap (Nop')    
+    where needLabel = Map.member pos lmap
+          wrap x = if needLabel then Labeled x (lmap Map.! pos) else x
+          get_label s = (lmap Map.! (pos + encode(s)))
+
+ls :: [String]
+ls = "L":ls
+
+labels :: [String]
+labels = map f $ zip ls [0..]
+    where f (l, i) = l ++ (show i)
+
+label_map prog = Map.fromList $ zip (label_positions prog) labels
+
+label_positions :: Program -> [Shift]
+label_positions = foldr f [] . (zip [0..])
+    where f (pos, command) result = 
+              case command of 
+                Jz shift  -> (pos + encode(shift)):result
+                Jnz shift -> (pos + encode(shift)):result
+                otherwise -> result
