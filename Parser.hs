@@ -33,14 +33,20 @@ unlabel_command labelPositions lcommand =
       ((Xch'   r), _) -> Xch r   
       ((Jz'    s), _) -> Jz  s
       ((Jnz'   s), _) -> Jnz s   
-      ((Jzl    l), s) -> Jz  (label2shift labelPositions s l)
-      ((Jnzl   l), s) -> Jnz (label2shift labelPositions s l)
+      ((Jzl    l), s) -> case shift of 
+                          Right s -> Jz s
+                          Left e -> error (e ++ " in 'Jz " ++ l ++ "'")
+                        where shift = (label2shift labelPositions s l)
+      ((Jnzl   l), s) -> case shift of 
+                          Right s -> Jnz s
+                          Left e -> error (e ++ " in 'Jnz " ++ l ++ "'")
+                        where shift = (label2shift labelPositions s l)
       ((Shr'   s), _) -> Shr s
       ((Shl'   s), _) -> Shl s
       ((Jmp'   r), _) -> Jmp r    
       ((Out'   r), _) -> Out r    
       ((Sleep' r), _) -> Sleep r  
-      (Nop',     _) -> Nop      
+      (Nop',       _) -> Nop      
       ((Labeled lcommand label), s) -> unlabel_command labelPositions (lcommand, s)
 
 
@@ -51,12 +57,15 @@ labelPositions prog = map l . filter labels $ zip prog [0..(length prog)]
                                   otherwise -> False
           l ((Labeled c l), pos) = (l, pos)
 
-label2shift :: [(Label, Shift)] -> Shift -> Label -> Shift
-label2shift lps s label = case p of 
-                            Just smth -> encode((snd smth) - s)
-                            otherwise -> error "Label not found"
-    where pred (l, pos) = l == label
-          p = find pred lps
+label2shift :: [(Label, Shift)] -> Shift -> Label -> Either String Shift
+label2shift label_positions command_pos label = 
+    case label_and_pos of 
+      Just smth -> if (validHex relative_shift) then (Right (encode relative_shift))
+                  else (Left ("Shift '" ++ (show relative_shift) ++ "' is too big"))
+                      where relative_shift = (snd smth) - command_pos
+      otherwise -> (Left ("Label '" ++ label ++ "' not found"))
+    where pred = (label ==) . fst 
+          label_and_pos = find pred label_positions
 
 encode :: Int -> Int
 encode x = if (x >= 0 && x < 8) then x
