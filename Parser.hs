@@ -88,6 +88,13 @@ register = P.try(do {P.char 'R';
            do {val <- P.many (P.noneOf " \n\r\t");
                error ("Wrong register '" ++ val ++ "'")}      
               
+color :: P.GenParser Char st Int
+color = do s <- P.many1 (P.noneOf " \n\r\t")
+           case s of
+             "GREEN"  -> return 4
+             "YELLOW" -> return 2
+             "RED"    -> return 8
+             otherwise -> error ("Wrong color '" ++ s ++ "'")
 
 validHex :: Int -> Bool
 validHex d = 0 <= d && d < 16
@@ -95,7 +102,7 @@ validHex d = 0 <= d && d < 16
 spaces = P.many P.space
 spaces1 = P.many1 P.space
 
-store  = do {P.string "Store"; spaces1; val <- nat;      spaces; return (Store' val)}
+store  = do {P.string "Store"; spaces1; val <- nat P.<|> color; spaces; return (Store' val)}
 inc    = do {P.string "Inc";   spaces1; reg <- register; spaces; return (Inc' reg)}
 dec    = do {P.string "Dec";   spaces1; reg <- register; spaces; return (Dec' reg)}
 _not   = do {P.string "Not";   spaces1; reg <- register; spaces; return (Not' reg)}
