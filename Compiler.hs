@@ -61,11 +61,11 @@ decompileCommand' command arg
     | command == 14 = Sleep (toEnum (fromIntegral arg))
     | command == 15 && arg == 15 = Nop
 
---with_labels ::  -> Program -> ProgramWithLabels
+with_labels :: (Map.Map Shift Label) -> Program -> ProgramWithLabels
 with_labels lmap prog = foldr f [] $ zip [0..] prog
     where f (pos, command) result = (toLCommand lmap command pos):result
 
---toLCommand :: Command -> LCommand
+toLCommand :: (Map.Map Shift Label) -> Command -> Shift -> LCommand
 toLCommand lmap c pos = 
     case c of 
       Store x -> wrap (Store' x)
