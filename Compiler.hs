@@ -6,6 +6,7 @@ import qualified Data.ByteString.Lazy as L
 import Data.Bits
 import Data.Word
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 compile :: Program -> L.ByteString
 compile = L.pack . map compileCommand
@@ -95,7 +96,8 @@ labels :: [String]
 labels = map f $ zip ls [0..]
     where f (l, i) = l ++ (show i)
 
-label_map prog = Map.fromList $ zip (label_positions prog) labels
+label_map prog = Map.fromList $ zip unique_label_positions labels
+    where unique_label_positions = Set.toList $ Set.fromList (label_positions prog)
 
 label_positions :: Program -> [Shift]
 label_positions = foldr f [] . (zip [0..])
