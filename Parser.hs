@@ -68,7 +68,7 @@ label2shift label_positions command_pos label =
 
 encode :: Int -> Int
 encode x = if (x >= 0 && x < 8) then x
-           else 7 - x
+           else 8 - x
 
 -- Parsing:
 

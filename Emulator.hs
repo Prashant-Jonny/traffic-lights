@@ -64,5 +64,5 @@ setReg registers reg val = take r registers ++ [val] ++ drop (r+1) registers
 
 decode :: Int -> Int
 decode x = if (x >= 0 && x < 8) then x
-           else -(x `mod` 8 + 1)
+           else -(x `mod` 8)
 
